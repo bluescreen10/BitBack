@@ -1,0 +1,12 @@
+<config>
+  <profiles>
+    <profile>
+      <name>Home Folder</name>
+      <source>/home/me</source>
+      <destination>/tmp/backup</destination>
+      <compression level="9">yes</compression>
+      <encryption password="bank1234">yes</encryption>
+      <fileChangeDetection>mtime</fileChangeDetection>
+    </profile>
+  </profiles>
+</config>
