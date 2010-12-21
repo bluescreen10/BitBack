@@ -1,0 +1,5 @@
+Perl:
+* Gtk2
+* IO::Compress::Gzip
+* GnuPG
+* File::Path
