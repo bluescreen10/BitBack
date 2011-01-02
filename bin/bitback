@@ -1,0 +1,83 @@
+#!perl
+
+use warnings;
+use strict;
+use BitBack;
+
+INIT {
+    main();
+}
+
+use constant {
+    EXIT_SUCCESS => 0,
+    EXIT_ERROR   => 1,
+};
+
+sub main {
+    my $options = parse_cmdline_options( \@ARGV );
+
+    my $model = BitBack->new($options);
+
+    if ( $options->{gui} ) {
+        require BitBack::GUI;
+        my $tool = BitBack::GUI->new($model);
+        $tool->start;
+    }
+
+}
+
+sub parse_cmdline_options {
+    my $cmdline = shift;
+
+    # default options
+    my $options = {
+        gui    => 1,
+        config => "$ENV{HOME}/.bitback"
+    };
+
+    for ( my $index = 0 ; $index < scalar(@$cmdline) ; $index++ ) {
+        my $current_opt = $cmdline->[$index];
+
+        # Config
+        if ( $current_opt =~ /^\-\-config\s+/ ) {
+            my $config = $cmdline->[ ++$index ];
+            $options->{config} = $config;
+        }
+
+        # GUI
+        elsif ( $current_opt eq '-nox' ) {
+            $options->{gui} = 0;
+        }
+
+        # Help
+        elsif ( $current_opt eq '-help' ) {
+            print_help();
+        }
+
+        # Invalid options
+        else {
+            print STDERR "FATAL: Invalid option $current_opt\n";
+            print_help();
+        }
+    }
+
+    return $options;
+}
+
+sub print_help {
+    my $exe = __FILE__;
+    print STDERR <<HELP;
+Usage: $exe [--config FILE ] [-nogui] [-help]
+  --config FILE            Specifies the config file to be used
+                           (default value is ~/.bitback)
+
+  -nox                     Runs in command line mode
+
+  -help                    Prints help information
+HELP
+    exit(EXIT_ERROR);
+}
+
+# Local Variables:
+#   mode: cperl
+# End:

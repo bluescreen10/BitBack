@@ -13,7 +13,7 @@ $builder->connect_signals(undef);
 $window->show();
 
 Gtk2->main();
-
+Nin
 exit;
 
 sub cb_destroy {

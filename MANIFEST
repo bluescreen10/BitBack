@@ -1,0 +1,5 @@
+lib/BitBack.pm
+lib/BitBack/GUI/GUI.pm
+lib/BitBack/Profile.pm
+lib/BitBack/ProfilesManager.pm
+lib/BitBack/GUI/GUI.glade
