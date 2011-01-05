@@ -35,7 +35,7 @@ sub read_config {
     # If no config file return
     return unless ( -e $self->{config} );
 
-    my $config = XMLin( $self->{config}, ForceArray => [ 'profile' ] );
+    my $config = XMLin( $self->{config}, ForceArray => ['profile'] );
 
     if ( $config and $config->{profiles} and $config->{profiles}->{profile} ) {
         foreach my $data ( @{ $config->{profiles}->{profile} } ) {
@@ -51,7 +51,28 @@ sub read_config {
             push( @{ $self->{profiles} }, $profile );
         }
     }
+}
 
+sub write_config {
+    my $self = shift;
+
+    my $xml = { profile => [] };
+
+    foreach my $profile ( @{ $self->{profiles} } ) {
+        my $data = {
+            profileName         => [ $profile->name ],
+            source              => [ $profile->source ],
+            destination         => [ $profile->destination ],
+            lastSuccess         => [ $profile->last_success ],
+            lastRun             => [ $profile->last_run ],
+            fileChangeDetection => [ 'mdate' ]
+        };
+        push( @{ $xml->{profile} }, $data );
+
+    }
+    use Data::Dumper;
+    print Dumper($xml);
+    XMLout($xml, rootname => 'profiles', OutputFile => $self->{config});
 }
 
 sub _comparator_from_name {
@@ -63,10 +84,6 @@ sub _comparator_from_name {
 
     return 'BitBack::Comparator::MDate';
 
-}
-
-sub write_config {
-    my $self = shift;
 }
 
 1;

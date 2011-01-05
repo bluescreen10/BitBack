@@ -35,7 +35,7 @@ sub info {
     $self->_append_debug( INFO, $message );
 }
 
-sub info {
+sub warn {
     my ( $self, $message ) = @_;
     $self->_append_debug( WARN, $message );
 }

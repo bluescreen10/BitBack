@@ -5,6 +5,7 @@ use warnings;
 use version;
 use BitBack::ProfilesManager;
 use Time::HiRes qw(usleep);
+use BitBack::Archiver::IndividualCompressedFiles;
 
 our $VERSION = qv(1.00);
 
@@ -46,6 +47,8 @@ sub run {
     $self->_run($profile);
 
     $profile->status('');
+    $profile->last_run($self->_timestamp);
+    $self->{profiles_manager}->write_config;
     $self->_changed('profiles');
     $self->_info('Finished');
     $self->is_running(0);
@@ -77,13 +80,17 @@ sub _run {
 
     my @changeset = $profile->comparator->find_changes( $profile->source, $profile->destination, $failures );
 
+    my $archiver = BitBack::Archiver::IndividualCompressedFiles->new( $profile->source, $profile->destination);
+
     my $count = 0;
     my $total_count = scalar(@changeset);
     my $last_update = time();
-    foreach (@changeset) {
 
+    foreach my $step (@changeset) {
+        $archiver->process_step($step, $failures);
+
+        # Update view;
         $count++;
-
         if ( time() - $last_update > 2) {
             $last_update = time();
             $self->percentage($count/$total_count);
@@ -94,6 +101,10 @@ sub _run {
 
     foreach (@$failures) {
         $self->_warn($_);
+    }
+
+    unless (@$failures) {
+        $profile->last_success($self->_timestamp);
     }
 
 }
@@ -158,4 +169,11 @@ sub _warn {
         $listener->warn($message);
     }
 
+}
+
+sub _timestamp {
+    my @lt = localtime();
+    $lt[5] += 1900;
+    $lt[4]++;
+    return sprintf("%04d-%02d-%02d %02d:%02d:%02d",$lt[5],$lt[4],$lt[3],$lt[2],$lt[1],$lt[0]);
 }
