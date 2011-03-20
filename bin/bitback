@@ -18,10 +18,23 @@ sub main {
 
     my $model = BitBack->new($options);
 
+    # Gtk GUI
     if ( $options->{gui} ) {
-        require BitBack::GUI;
-        my $tool = BitBack::GUI->new($model);
-        $tool->start;
+        require BitBack::GUI::Gtk;
+        my $tool = BitBack::GUI::Gtk->new($model);
+        $tool->start($options->{profile});
+    }
+
+    # Cmd Line
+    elsif ( $options->{profile} ) {
+        require BitBack::GUI::CmdLine;
+        my $gui = BitBack::GUI::CmdLine->new($model);
+        $gui->start($options->{profile});
+    }
+
+    # Error
+    else {
+        print_help();
     }
 
 }
@@ -39,9 +52,8 @@ sub parse_cmdline_options {
         my $current_opt = $cmdline->[$index];
 
         # Config
-        if ( $current_opt =~ /^\-\-config\s+/ ) {
-            my $config = $cmdline->[ ++$index ];
-            $options->{config} = $config;
+        if ( $current_opt eq '--config' ) {
+            $options->{config} = $cmdline->[++$index];
         }
 
         # GUI
@@ -52,6 +64,11 @@ sub parse_cmdline_options {
         # Help
         elsif ( $current_opt eq '-help' ) {
             print_help();
+        }
+
+        # Profile
+        elsif ( $current_opt eq '--profile' ) {
+            $options->{profile} = $cmdline->[++$index];
         }
 
         # Invalid options
@@ -67,13 +84,16 @@ sub parse_cmdline_options {
 sub print_help {
     my $exe = __FILE__;
     print STDERR <<HELP;
-Usage: $exe [--config FILE ] [-nogui] [-help]
+Usage: $exe [--config FILE ] [-nox] [-help] [--profile NAME]
   --config FILE            Specifies the config file to be used
                            (default value is ~/.bitback)
 
+  -help                    Prints help information
+
   -nox                     Runs in command line mode
 
-  -help                    Prints help information
+  --profile NAME           Starts bitback and runs the selected profile
+
 HELP
     exit(EXIT_ERROR);
 }

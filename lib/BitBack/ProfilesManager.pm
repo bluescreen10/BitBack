@@ -14,6 +14,16 @@ sub new {
     return $self;
 }
 
+sub changed {
+    my ($self,$aspect) = @_;
+    $self->_changed($aspect);
+}
+
+sub notify {
+    my ($self, $target ) = @_;
+    $self->{listener} = $target;
+}
+
 sub profiles {
     my $self = shift;
     return $self->{profiles};
@@ -37,20 +47,22 @@ sub read_config {
 
     my $config = XMLin( $self->{config}, ForceArray => ['profile'] );
 
-    if ( $config and $config->{profiles} and $config->{profiles}->{profile} ) {
-        foreach my $data ( @{ $config->{profiles}->{profile} } ) {
+    if ( $config and $config->{profile} ) {
+        foreach my $data ( @{ $config->{profile} } ) {
             my $profile = BitBack::Profile->new;
 
+            $profile->notify($self);
             $profile->name( $data->{profileName} );
             $profile->source( $data->{source} );
             $profile->destination( $data->{destination} );
             $profile->last_run( $data->{lastRun} );
             $profile->last_success( $data->{lastSuccess} );
-            $profile->comparator( $self->_comparator_from_name( $data->{fileChangeDetection} ) );
+            $profile->comparator( $data->{fileChangeDetection} );
 
             push( @{ $self->{profiles} }, $profile );
         }
     }
+    $self->_changed('profiles');
 }
 
 sub write_config {
@@ -71,19 +83,12 @@ sub write_config {
 
     }
     use Data::Dumper;
-    print Dumper($xml);
     XMLout($xml, rootname => 'profiles', OutputFile => $self->{config});
 }
 
-sub _comparator_from_name {
-    my ( $self, $name ) = @_;
-
-    if ( $name eq 'mdate' ) {
-        return 'BitBack::Comparator::MDate';
-    }
-
-    return 'BitBack::Comparator::MDate';
-
+sub _changed {
+    my ( $self, $aspect ) = @_;
+    $self->{listener}->changed($aspect);
 }
 
 1;

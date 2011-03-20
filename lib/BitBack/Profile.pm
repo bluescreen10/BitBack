@@ -6,17 +6,12 @@ use warnings;
 sub new {
     my $class = shift;
     my $self  = bless {
-        name         => '',
-        status       => '',
-        last_run     => undef,
-        last_success => undef,
-        comparator   => undef,
-        source       => undef,
-        destination  => undef
+        name       => '',
+        status     => '',
+        percentage => 0,
     }, $class;
     return $self;
 }
-
 
 sub comparator {
     my $self = shift;
@@ -40,6 +35,11 @@ sub name {
         $self->{name} = shift;
     }
     return $self->{name};
+}
+
+sub notify {
+    my ( $self, $listener ) = @_;
+    $self->{listener} = $listener;
 }
 
 sub last_run {
@@ -70,8 +70,25 @@ sub status {
     my $self = shift;
     if (@_) {
         $self->{status} = shift;
+        $self->_changed('status');
     }
     return $self->{status};
+}
+
+sub percentage {
+    my $self = shift;
+    if (@_) {
+        $self->{percentage} = shift;
+        $self->_changed('percentage');
+    }
+    return $self->{percentage};
+}
+
+sub _changed {
+    my ( $self, $aspect ) = @_;
+    if ( $self->{listener} ) {
+        $self->{listener}->changed($aspect);
+    }
 }
 
 1;

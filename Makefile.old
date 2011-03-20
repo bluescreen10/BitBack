@@ -183,26 +183,32 @@ PERL_ARCHIVE       =
 PERL_ARCHIVE_AFTER = 
 
 
-TO_INST_PM = bankup.pl \
-	lib/BitBack.pm \
+TO_INST_PM = lib/BitBack.pm \
+	lib/BitBack/Archiver/IndividualCompressedFiles.pm \
 	lib/BitBack/Comparator.pm \
 	lib/BitBack/Comparator/MDate.pm \
 	lib/BitBack/GUI.glade \
 	lib/BitBack/GUI.pm \
+	lib/BitBack/GUI/CmdLine.pm \
+	lib/BitBack/GUI/Gtk.pm \
 	lib/BitBack/Profile.pm \
 	lib/BitBack/ProfilesManager.pm \
 	main.pl
 
 PM_TO_BLIB = lib/BitBack/GUI.pm \
 	blib/lib/BitBack/GUI.pm \
+	lib/BitBack/Archiver/IndividualCompressedFiles.pm \
+	blib/lib/BitBack/Archiver/IndividualCompressedFiles.pm \
+	lib/BitBack/GUI/Gtk.pm \
+	blib/lib/BitBack/GUI/Gtk.pm \
 	lib/BitBack/ProfilesManager.pm \
 	blib/lib/BitBack/ProfilesManager.pm \
 	lib/BitBack/Profile.pm \
 	blib/lib/BitBack/Profile.pm \
-	bankup.pl \
-	$(INST_LIB)/bankup.pl \
 	lib/BitBack/Comparator/MDate.pm \
 	blib/lib/BitBack/Comparator/MDate.pm \
+	lib/BitBack/GUI/CmdLine.pm \
+	blib/lib/BitBack/GUI/CmdLine.pm \
 	lib/BitBack/Comparator.pm \
 	blib/lib/BitBack/Comparator.pm \
 	main.pl \
@@ -819,10 +825,12 @@ ppd :
 pm_to_blib : $(FIRST_MAKEFILE) $(TO_INST_PM)
 	$(NOECHO) $(ABSPERLRUN) -MExtUtils::Install -e 'pm_to_blib({@ARGV}, '\''$(INST_LIB)/auto'\'', q[$(PM_FILTER)], '\''$(PERM_DIR)'\'')' -- \
 	  lib/BitBack/GUI.pm blib/lib/BitBack/GUI.pm \
+	  lib/BitBack/Archiver/IndividualCompressedFiles.pm blib/lib/BitBack/Archiver/IndividualCompressedFiles.pm \
+	  lib/BitBack/GUI/Gtk.pm blib/lib/BitBack/GUI/Gtk.pm \
 	  lib/BitBack/ProfilesManager.pm blib/lib/BitBack/ProfilesManager.pm \
 	  lib/BitBack/Profile.pm blib/lib/BitBack/Profile.pm \
-	  bankup.pl $(INST_LIB)/bankup.pl \
 	  lib/BitBack/Comparator/MDate.pm blib/lib/BitBack/Comparator/MDate.pm \
+	  lib/BitBack/GUI/CmdLine.pm blib/lib/BitBack/GUI/CmdLine.pm \
 	  lib/BitBack/Comparator.pm blib/lib/BitBack/Comparator.pm \
 	  main.pl $(INST_LIB)/main.pl \
 	  lib/BitBack/GUI.glade blib/lib/BitBack/GUI.glade \
