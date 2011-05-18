@@ -17,19 +17,18 @@ sub main {
     my $options = parse_cmdline_options( \@ARGV );
 
     my $model = BitBack->new($options);
+    my $gui;
 
     # Gtk GUI
     if ( $options->{gui} ) {
         require BitBack::GUI::Gtk;
-        my $tool = BitBack::GUI::Gtk->new($model);
-        $tool->start($options->{profile});
+        $gui = BitBack::GUI::Gtk->new($model);
     }
 
     # Cmd Line
     elsif ( $options->{profile} ) {
         require BitBack::GUI::CmdLine;
-        my $gui = BitBack::GUI::CmdLine->new($model);
-        $gui->start($options->{profile});
+        $gui = BitBack::GUI::CmdLine->new($model);
     }
 
     # Error
@@ -37,6 +36,7 @@ sub main {
         print_help();
     }
 
+    $gui->start( $options->{profile} );
 }
 
 sub parse_cmdline_options {
@@ -45,7 +45,7 @@ sub parse_cmdline_options {
     # default options
     my $options = {
         gui    => 1,
-        config => "$ENV{HOME}/.bitback"
+        config => "$ENV{HOME}/.bitback",
     };
 
     for ( my $index = 0 ; $index < scalar(@$cmdline) ; $index++ ) {
@@ -53,7 +53,7 @@ sub parse_cmdline_options {
 
         # Config
         if ( $current_opt eq '--config' ) {
-            $options->{config} = $cmdline->[++$index];
+            $options->{config} = $cmdline->[ ++$index ];
         }
 
         # GUI
@@ -68,7 +68,7 @@ sub parse_cmdline_options {
 
         # Profile
         elsif ( $current_opt eq '--profile' ) {
-            $options->{profile} = $cmdline->[++$index];
+            $options->{profile} = $cmdline->[ ++$index ];
         }
 
         # Invalid options

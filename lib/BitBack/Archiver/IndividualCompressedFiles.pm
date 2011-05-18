@@ -5,7 +5,6 @@ use warnings;
 use IO::Compress::Zip qw(zip $ZipError);
 use IO::Uncompress::Unzip qw(unzip $UnzipError);
 use File::Spec;
-use Digest::SHA1;
 use Digest::MD5;
 use IO::File;
 use Crypt::CBC;
@@ -19,7 +18,7 @@ sub new {
         errors         => [],
         subfix         => '.zip',
         compare_method => 'md5',
-        encrypt        => 1,
+        encrypt        => 0,
         password       => 'MyPassword1',
     }, $class;
     return $self;
@@ -28,15 +27,14 @@ sub new {
 sub archive {
     my ( $self, $dry_run ) = @_;
 
-    $self->{profile}->percentage(0);
-    $self->{profile}->status('Running');
-
     $self->_initialize;
     my $actions = $self->_find_archive_actions;
 
     my $timestamp = time();
     my $counter   = 0;
 
+    $self->{profile}->percentage(0);
+    $self->{profile}->is_running(1);
     foreach (@$actions) {
 
         # Inform every 2 seconds the progress
@@ -60,7 +58,10 @@ sub archive {
         $counter++;
     }
 
+    $self->{profile}->update_last_run;
+    $self->{profile}->update_last_success unless(scalar(@{$self->{errors}}));
     $self->{profile}->percentage(100);
+    $self->{profile}->is_running(0);
 
 }
 
@@ -137,14 +138,14 @@ sub _compare_files_mdate {
     my ( $self, $src_file, $dst_file, $actions ) = @_;
 
     if ( ( stat($src_file) )[9] != ( stat($dst_file) )[9] ) {
-        push @$actions, { action => 'archive', $src_file };
+        push @$actions, { action => 'archive', source => $src_file, destination => $dst_file };
     }
 }
 
 sub _compare_files_content {
     my ( $self, $src_file, $dst_file, $actions ) = @_;
 
-    my $hash = $self->{hash_class}->new;
+    my $hash = Digest::MD5->new;
 
     # Dst file
     my $cipher;
@@ -187,11 +188,33 @@ sub _compare_files_content {
 sub _compare_files_size {
     my ( $self, $src_file, $dst_file, $actions ) = @_;
 
-    if ( $self->{compare_method} eq 'size' ) {
-        my $dst_fh = IO::Uncompress::Unzip->new($dst_file);
-        my @info   = $dst_fh->trailingData;
-        print Dumper( \@info );
+    my $dst_size = 0;
+
+    my $cipher;
+    if ( $self->{encrypt} ) {
+        $cipher = Crypt::CBC->new( -key => $self->{password}, -cipher => 'Rijndael' );
+        $cipher->start('decrypting');
     }
+
+    my $fh = IO::Uncompress::Unzip->new($dst_file);
+    $fh->binmode;
+
+    my $buffer;
+    while ( $fh->read( $buffer, BUFFER_SIZE ) ) {
+        if ( $self->{encrypt} ) {
+            $buffer = $cipher->crypt($buffer);
+        }
+        $dst_size += length($buffer);
+    }
+
+    if ( $self->{encrypt} ) {
+        $dst_size += length( $cipher->finish() );
+    }
+
+    my $src_size = (stat($src_file))[7];
+
+    push @$actions, { action => 'archive', source => $src_file, destination => $dst_file }
+      unless ( $src_size eq $dst_size );
 
 }
 
@@ -207,7 +230,7 @@ sub _compare_dir {
         return;
     }
 
-    unless ( -d $dst_dir ) {
+    unless ( $self->_is_directory($dst_dir) ) {
         push( @$actions, { action => 'mkpath', entry => $dst_dir } );
     }
 
@@ -257,13 +280,7 @@ sub _initialize {
 
     my $method = lc( $self->{compare_method} );
 
-    if ( $method eq 'sha1' ) {
-        $self->{hash_class}          = 'Digest::SHA1';
-        $self->{compare_file_method} = '_compare_files_content';
-    }
-
-    elsif ( $method eq 'md5' ) {
-        $self->{hash_class}          = 'Digest::MD5';
+    if ( $method eq 'md5' ) {
         $self->{compare_file_method} = '_compare_files_content';
     }
 
@@ -275,6 +292,18 @@ sub _initialize {
         die "Method $method not supported";
     }
 
+}
+
+sub _is_directory {
+    -d $_[1];
+}
+
+sub _is_file {
+    -f $_[1];
+}
+
+sub _is_existent {
+    -e $_[1];
 }
 
 1;

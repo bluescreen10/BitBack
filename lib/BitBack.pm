@@ -4,10 +4,10 @@ use strict;
 use warnings;
 use version;
 use BitBack::ProfilesManager;
-use Time::HiRes qw(usleep);
+use threads;# 'exit' => 'threads_only';
 use BitBack::Archiver::IndividualCompressedFiles;
 
-our $VERSION = qv(1.00);
+our $VERSION = qq(1.00);
 
 sub new {
     my $class = shift;
@@ -23,17 +23,16 @@ sub changed {
     $self->_changed($aspect);
 }
 
-sub initialize {
-    my $self = shift;
-
-    $self->{profiles_manager}->notify($self);
-
-    eval { $self->{profiles_manager}->read_config; };
-
-    if ($@) {
-        $self->_fatal($@);
+sub clean_up {
+    foreach( threads->list(threads::joinable)) {
+        $_->join;
     }
+}
 
+sub force_quit {
+    foreach( threads->list(threads::running)) {
+        $_->kill('SIGKILL')->detach;
+    }
 }
 
 sub archive {
@@ -43,19 +42,30 @@ sub archive {
 
     unless ($profile) {
         $self->_fatal("Profile \"$name\" does not exists");
+        return;
     }
 
-    $self->_info("Archiving \"$name\"");
+    threads->create(
+        sub {
+            $self->_info("Archiving \"$name\"");
 
-    my $strategy = $self->_strategy_for($profile);
-    $strategy->archive;
+            # Handle Kill Event
+            $SIG{'KILL'} = sub { return };
 
-    foreach( @{$strategy->errors} ) {
-        $self->_warn($_);
-    }
+            my $strategy = $self->_strategy_for($profile);
+            $strategy->archive;
 
-    $self->_info('Finished');
+            foreach ( @{ $strategy->errors } ) {
+                $self->_warn($_);
+            }
 
+            $self->_info("Finished \"$name\"");
+        }
+    );
+}
+
+sub is_running {
+    return scalar(threads->list(threads::running));
 }
 
 sub notify {
@@ -67,6 +77,19 @@ sub profiles {
     my $self = shift;
 
     $self->{profiles_manager}->profiles;
+}
+
+sub read_config {
+    my $self = shift;
+
+    $self->{profiles_manager}->notify($self);
+
+    eval { $self->{profiles_manager}->read_config; };
+
+    if ($@) {
+        $self->_fatal($@);
+    }
+
 }
 
 sub restore {
@@ -83,7 +106,7 @@ sub restore {
     my $strategy = $self->_strategy_for($profile);
     $strategy->restore;
 
-    foreach( @{$strategy->errors} ) {
+    foreach ( @{ $strategy->errors } ) {
         $self->_warn($_);
     }
 
@@ -94,26 +117,27 @@ sub restore {
 sub _init {
     my ( $self, $options ) = @_;
 
-    $self->{options}          = $options;
-    $self->{listener}         = [];
-    $self->{profiles_manager} = BitBack::ProfilesManager->new( $options->{config} );
-    $self->{percentage}       = 0;
-    $self->{running}          = 0;
+    $self->{options}  = $options;
+    $self->{listener} = [];
+    $self->{profiles_manager} =
+      BitBack::ProfilesManager->new( $options->{config} );
+    $self->{percentage} = 0;
+    $self->{running}    = 0;
 }
 
 sub _changed {
     my ( $self, $aspect ) = @_;
-    $self->{listener}->changed($aspect);
+    $self->{listener}->add_event("changed:$aspect");
 }
 
 sub _fatal {
     my ( $self, $message ) = @_;
-    $self->{listener}->fatal($message);
+    $self->{listener}->add_event("fatal:$message");
 }
 
 sub _info {
     my ( $self, $message ) = @_;
-    $self->{listener}->info($message);
+    $self->{listener}->add_event("info:$message");
 }
 
 sub _strategy_for {
@@ -123,62 +147,7 @@ sub _strategy_for {
 
 sub _warn {
     my ( $self, $message ) = @_;
-    $self->{listener}->warn($message);
+    $self->{listener}->add_event("warn:$message");
 }
 
-# sub _timestamp {
-#     my @lt = localtime();
-#     $lt[5] += 1900;
-#     $lt[4]++;
-#     return
-#       sprintf( "%04d-%02d-%02d %02d:%02d:%02d", $lt[5], $lt[4], $lt[3], $lt[2], $lt[1], $lt[0] );
-# }
-
-
-# sub _run {
-#     my ( $self, $profile, $dry_run ) = @_;
-
-#     #TODO: pre-actions in case single file compression
-
-#     $self->percentage(0);
-
-#     my $failures = [];
-
-#     unless ( -d $profile->source ) {
-#         $self->_fatal("Soruce directory $profile->{source} doesn't exists");
-#         return;
-#     }
-
-#     my @changeset =
-#       $profile->comparator->find_changes( $profile->source, $profile->destination, $failures );
-
-#     my $archiver =
-#       BitBack::Archiver::IndividualCompressedFiles->new( $profile->source, $profile->destination );
-
-#     my $count       = 0;
-#     my $total_count = scalar(@changeset);
-#     my $last_update = time();
-
-#     foreach my $step (@changeset) {
-#         $archiver->process_step( $step, $failures );
-
-#         # Update view;
-#         $count++;
-#         if ( time() - $last_update > 2 ) {
-#             $last_update = time();
-#             $self->percentage( $count / $total_count );
-#         }
-#     }
-
-#     $self->percentage(1);
-
-#     foreach (@$failures) {
-#         $self->_warn($_);
-#     }
-
-#     unless (@$failures) {
-#         $profile->last_success( $self->_timestamp );
-#     }
-
-# }
 

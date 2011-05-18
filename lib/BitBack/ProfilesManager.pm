@@ -4,23 +4,20 @@ package BitBack::ProfilesManager;
 use strict;
 use warnings;
 use BitBack::Profile;
-use BitBack::Comparator::MDate;
-use XML::Simple;
+use XML::Simple qw(:strict);
 
 sub new {
     my ( $class, $config ) = @_;
-
-    my $self = bless { config => $config, profiles => [] }, $class;
-    return $self;
+    bless { config => $config, profiles => [] }, $class;
 }
 
 sub changed {
-    my ($self,$aspect) = @_;
+    my ( $self, $aspect ) = @_;
     $self->_changed($aspect);
 }
 
 sub notify {
-    my ($self, $target ) = @_;
+    my ( $self, $target ) = @_;
     $self->{listener} = $target;
 }
 
@@ -45,19 +42,26 @@ sub read_config {
     # If no config file return
     return unless ( -e $self->{config} );
 
-    my $config = XMLin( $self->{config}, ForceArray => ['profile'] );
-
-    if ( $config and $config->{profile} ) {
-        foreach my $data ( @{ $config->{profile} } ) {
+    my $config = XMLin(
+        $self->{config},
+        KeepRoot      => 1,
+        KeyAttr       => 'profiles',
+        ForceArray    => ['profile'],
+        SuppressEmpty => 1,
+    );
+    use Data::Dumper;
+    print Data::Dumper::Dumper($config);
+    if ( $config and $config->{profiles}->{profile} ) {
+        foreach my $data ( @{ $config->{profiles}->{profile} } ) {
             my $profile = BitBack::Profile->new;
 
             $profile->notify($self);
-            $profile->name( $data->{profileName} );
+            $profile->name( $data->{name} );
             $profile->source( $data->{source} );
             $profile->destination( $data->{destination} );
-            $profile->last_run( $data->{lastRun} );
-            $profile->last_success( $data->{lastSuccess} );
-            $profile->comparator( $data->{fileChangeDetection} );
+            $profile->last_run( $data->{stats}->{lastRun} );
+            $profile->last_success( $data->{stats}->{lastSuccess} );
+            $profile->comparator( $data->{compareMethod} );
 
             push( @{ $self->{profiles} }, $profile );
         }
@@ -77,13 +81,13 @@ sub write_config {
             destination         => [ $profile->destination ],
             lastSuccess         => [ $profile->last_success ],
             lastRun             => [ $profile->last_run ],
-            fileChangeDetection => [ 'mdate' ]
+            fileChangeDetection => ['mdate']
         };
         push( @{ $xml->{profile} }, $data );
 
     }
     use Data::Dumper;
-    XMLout($xml, rootname => 'profiles', OutputFile => $self->{config});
+    XMLout( $xml, rootname => 'profiles', OutputFile => $self->{config} );
 }
 
 sub _changed {

@@ -2,9 +2,13 @@ package BitBack::GUI::Gtk;
 
 use strict;
 use warnings;
-use Gtk2 '-init';
+use Glib;
+use Gtk2 qw(-init);
 use Data::Dumper;
 use base qw(BitBack::GUI);
+Glib::Object->set_threadsafe(1);
+
+my @threads;
 
 use constant {
     FATAL => 'FATAL',
@@ -12,7 +16,6 @@ use constant {
     WARN  => 'WARN',
     DEBUG => 'DEBUG',
 };
-
 
 sub fatal {
     my ( $self, $message ) = @_;
@@ -38,9 +41,11 @@ sub start {
 
     $self->SUPER::start();
 
+    Glib::Idle->add( sub { $self->process_events;return 1 } );
     my $window = $self->{builder}->get_object("main_window");
     $window->show();
     Gtk2->main();
+    $self->{model}->clean_up;
 }
 
 sub changed {
@@ -64,9 +69,10 @@ sub changed_profiles {
         $store->insert_with_values(
             $index,
             0 => $_->name,
-            1 => $_->status,
+            1 => $_->percentage,
             2 => $_->last_run,
             3 => $_->last_success,
+            4 => $_->is_running,
         );
         $index++;
     }
@@ -75,8 +81,10 @@ sub changed_profiles {
 
 sub changed_percentage {
     my $self         = shift;
-    my $progress_bar = $self->{builder}->get_object('run_progress');
-    $progress_bar->set_fraction( $self->{model}->percentage );
+    my $list = $self->_ui_widget("profiles_list");
+    my @paths = $list->get_selection->get_selected_rows;
+    $self->changed_profiles;
+    $list->get_selection->select_path(@paths);
     $self->_update_view;
 }
 
@@ -94,7 +102,7 @@ sub _init {
     $self->SUPER::_init();
 
     my $file = __FILE__;
-    $file =~ s/\.pm$/\.glade/;
+    $file =~ s/\.pm$/\/GUI\.glade/;
 
     $self->{builder} = Gtk2::Builder->new;
     $self->{builder}->add_from_file($file);
@@ -116,14 +124,43 @@ sub _connect_signals {
     my $builder = $self->{builder};
 
     #Menu
-    $builder->get_object("debug_menu_item")->signal_connect( "activate" => sub { $self->_show_debug_window } );
+    $builder->get_object("debug_menu_item")
+      ->signal_connect( "activate" => sub { $self->_show_debug_window } );
 
     #Error dialog
-    $builder->get_object("error_dialog")->signal_connect( "delete-event" => sub { $self->_close_error_dialog } );
+    $builder->get_object("error_dialog")
+      ->signal_connect( "delete-event" => sub { $self->_close_error_dialog } );
 
-    $builder->get_object("new_button")->signal_connect( "clicked" => sub { $self->_new_profile } );
-    $builder->get_object("run_button")->signal_connect( "clicked" => sub { $self->_run_profile } );
-    $builder->get_object("profiles_list")->signal_connect( "cursor-changed" => sub { $self->_profile_selected } );
+
+    # Main window
+    $self->_connect_main_window_signals;
+}
+
+sub _connect_main_window_signals {
+    my $self = shift;
+
+    # Window
+    my $widget = $self->_ui_widget("main_window");
+    $widget->signal_connect( "destroy" => sub { $self->_quit });
+
+    # New button
+    $widget = $self->_ui_widget("new_button");
+    $widget->signal_connect( "clicked" => sub { $self->_new_profile } );
+
+    # Run Button
+    $widget = $self->_ui_widget("run_button");
+    $widget->signal_connect( "clicked" => sub { $self->_archive_profile } );
+
+    # Profiles List
+    $widget = $self->_ui_widget("profiles_list");
+    $widget->signal_connect( "cursor-changed" => sub { $self->_profile_selected } );
+
+
+}
+
+sub _ui_widget {
+    my ( $self, $name ) = @_;
+    $self->{builder}->get_object($name);
 }
 
 sub _append_debug {
@@ -166,7 +203,7 @@ sub _new_profile {
     my $self = shift;
 }
 
-sub _run_profile {
+sub _archive_profile {
     my $self = shift;
 
     my $run     = $self->{builder}->get_object("run_button");
@@ -175,14 +212,12 @@ sub _run_profile {
     my ( $model, $iter ) = $list->get_selection->get_selected;
     my $profile = $model->get( $iter, 0 );
 
-    $run->set_sensitive(0);
-    $restore->set_sensitive(0);
-    $list->get_selection->unselect_all;
-    $self->_update_view;
-    $self->{model}->run($profile);
-
-    #    $run->set_sensitive(1);
-    #    $restore->set_sensitive(1);
+#    $run->set_sensitive(0);
+#   $restore->set_sensitive(0);
+#    $list->get_selection->unselect_all;
+#    $self->_update_view;
+    print STDERR "_archiving\n";
+    $self->{model}->archive($profile);
 }
 
 sub _show_debug_window {
@@ -191,6 +226,23 @@ sub _show_debug_window {
     my $window = $self->{builder}->get_object("debug_window");
     $window->show;
 
+}
+
+sub _quit {
+    my $self = shift;
+    if ( $self->{model}->is_running ) {
+        # Alert the user if he wants to kill the running threads
+        $self->_force_quit;
+    }
+    else {
+        Gtk2->main_quit;
+    }
+}
+
+sub _force_quit {
+    my $self = shift;
+    $self->{model}->force_quit;
+    Gtk2->main_quit;
 }
 
 1;

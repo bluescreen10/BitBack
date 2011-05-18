@@ -1,5 +1,13 @@
+bin/bitback
 lib/BitBack.pm
-lib/BitBack/GUI/GUI.pm
+lib/BitBack
+lib/BitBack/Archiver
+lib/BitBack/Archiver/IndividualCompressedFiles.pm
 lib/BitBack/Profile.pm
 lib/BitBack/ProfilesManager.pm
-lib/BitBack/GUI/GUI.glade
+lib/BitBack/GUI
+lib/BitBack/GUI/CmdLine.pm
+lib/BitBack/GUI/Gtk.pm
+lib/BitBack/GUI/Gtk
+lib/BitBack/GUI/Gtk/GUI.glade
+lib/BitBack/GUI.pm

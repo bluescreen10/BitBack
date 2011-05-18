@@ -16,7 +16,7 @@
 #     BUILD_REQUIRES => {  }
 #     EXE_FILES => [q[bin/bitback]]
 #     NAME => q[BitBack]
-#     PREREQ_PM => { Test::More=>q[0], Gtk2=>q[0] }
+#     PREREQ_PM => { IO::File=>q[0], File::Spec=>q[0], Crypt::Rijndael=>q[0], Carp=>q[0], Crypt::CBC=>q[0], Test::More=>q[0], IO::Compress::Zip=>q[0], Digest::MD5=>q[0], IO::Uncompress::Unzip=>q[0], Gtk2=>q[0] }
 #     VERSION_FROM => q[lib/BitBack.pm]
 #     test => { TESTS=>q[t/*.t] }
 
@@ -38,11 +38,11 @@ FULL_AR = /usr/bin/ar
 LD = cc
 LDDLFLAGS = -shared -O2 -g -L/usr/local/lib -fstack-protector
 LDFLAGS =  -fstack-protector -L/usr/local/lib
-LIBC = /lib/libc-2.12.so
+LIBC = 
 LIB_EXT = .a
 OBJ_EXT = .o
 OSNAME = linux
-OSVERS = 2.6.24-27-server
+OSVERS = 2.6.24-29-server
 RANLIB = :
 SITELIBEXP = /usr/local/share/perl/5.10.1
 SITEARCHEXP = /usr/local/lib/perl/5.10.1
@@ -57,11 +57,11 @@ DIRFILESEP = /
 DFSEP = $(DIRFILESEP)
 NAME = BitBack
 NAME_SYM = BitBack
-VERSION = 1
+VERSION = 1.00
 VERSION_MACRO = VERSION
-VERSION_SYM = 1
+VERSION_SYM = 1_00
 DEFINE_VERSION = -D$(VERSION_MACRO)=\"$(VERSION)\"
-XS_VERSION = 1
+XS_VERSION = 1.00
 XS_VERSION_MACRO = XS_VERSION
 XS_DEFINE_VERSION = -D$(XS_VERSION_MACRO)=\"$(XS_VERSION)\"
 INST_ARCHLIB = blib/arch
@@ -185,12 +185,10 @@ PERL_ARCHIVE_AFTER =
 
 TO_INST_PM = lib/BitBack.pm \
 	lib/BitBack/Archiver/IndividualCompressedFiles.pm \
-	lib/BitBack/Comparator.pm \
-	lib/BitBack/Comparator/MDate.pm \
-	lib/BitBack/GUI.glade \
 	lib/BitBack/GUI.pm \
 	lib/BitBack/GUI/CmdLine.pm \
 	lib/BitBack/GUI/Gtk.pm \
+	lib/BitBack/GUI/Gtk/GUI.glade \
 	lib/BitBack/Profile.pm \
 	lib/BitBack/ProfilesManager.pm \
 	main.pl
@@ -201,20 +199,16 @@ PM_TO_BLIB = lib/BitBack/GUI.pm \
 	blib/lib/BitBack/Archiver/IndividualCompressedFiles.pm \
 	lib/BitBack/GUI/Gtk.pm \
 	blib/lib/BitBack/GUI/Gtk.pm \
+	lib/BitBack/GUI/Gtk/GUI.glade \
+	blib/lib/BitBack/GUI/Gtk/GUI.glade \
 	lib/BitBack/ProfilesManager.pm \
 	blib/lib/BitBack/ProfilesManager.pm \
 	lib/BitBack/Profile.pm \
 	blib/lib/BitBack/Profile.pm \
-	lib/BitBack/Comparator/MDate.pm \
-	blib/lib/BitBack/Comparator/MDate.pm \
 	lib/BitBack/GUI/CmdLine.pm \
 	blib/lib/BitBack/GUI/CmdLine.pm \
-	lib/BitBack/Comparator.pm \
-	blib/lib/BitBack/Comparator.pm \
 	main.pl \
 	$(INST_LIB)/main.pl \
-	lib/BitBack/GUI.glade \
-	blib/lib/BitBack/GUI.glade \
 	lib/BitBack.pm \
 	blib/lib/BitBack.pm
 
@@ -285,7 +279,7 @@ RCS_LABEL = rcs -Nv$(VERSION_SYM): -q
 DIST_CP = best
 DIST_DEFAULT = tardist
 DISTNAME = BitBack
-DISTVNAME = BitBack-1
+DISTVNAME = BitBack-1.00
 
 
 # --- MakeMaker macro section:
@@ -520,7 +514,7 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) Generating META.yml
 	$(NOECHO) $(ECHO) '--- #YAML:1.0' > META_new.yml
 	$(NOECHO) $(ECHO) 'name:               BitBack' >> META_new.yml
-	$(NOECHO) $(ECHO) 'version:            1' >> META_new.yml
+	$(NOECHO) $(ECHO) 'version:            1.00' >> META_new.yml
 	$(NOECHO) $(ECHO) 'abstract:           Multi Platform Backup Utility' >> META_new.yml
 	$(NOECHO) $(ECHO) 'author:' >> META_new.yml
 	$(NOECHO) $(ECHO) '    - Mariano Wahlmann <dichoso@gmail.com>' >> META_new.yml
@@ -531,8 +525,16 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) 'build_requires:' >> META_new.yml
 	$(NOECHO) $(ECHO) '    ExtUtils::MakeMaker:  0' >> META_new.yml
 	$(NOECHO) $(ECHO) 'requires:' >> META_new.yml
-	$(NOECHO) $(ECHO) '    Gtk2:        0' >> META_new.yml
-	$(NOECHO) $(ECHO) '    Test::More:  0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    Carp:                 0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    Crypt::CBC:           0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    Crypt::Rijndael:      0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    Digest::MD5:          0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    File::Spec:           0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    Gtk2:                 0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    IO::Compress::Zip:    0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    IO::File:             0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    IO::Uncompress::Unzip:  0' >> META_new.yml
+	$(NOECHO) $(ECHO) '    Test::More:           0' >> META_new.yml
 	$(NOECHO) $(ECHO) 'no_index:' >> META_new.yml
 	$(NOECHO) $(ECHO) '    directory:' >> META_new.yml
 	$(NOECHO) $(ECHO) '        - t' >> META_new.yml
@@ -808,11 +810,19 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd :
-	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="1">' > $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="1.00">' > $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <ABSTRACT>Multi Platform Backup Utility</ABSTRACT>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <AUTHOR>Mariano Wahlmann &lt;dichoso@gmail.com&gt;</AUTHOR>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <IMPLEMENTATION>' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Carp::" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Crypt::CBC" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Crypt::Rijndael" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Digest::MD5" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="File::Spec" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Gtk2::" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="IO::Compress::Zip" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="IO::File" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="IO::Uncompress::Unzip" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Test::More" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <ARCHITECTURE NAME="x86_64-linux-gnu-thread-multi-5.10" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <CODEBASE HREF="" />' >> $(DISTNAME).ppd
@@ -827,13 +837,11 @@ pm_to_blib : $(FIRST_MAKEFILE) $(TO_INST_PM)
 	  lib/BitBack/GUI.pm blib/lib/BitBack/GUI.pm \
 	  lib/BitBack/Archiver/IndividualCompressedFiles.pm blib/lib/BitBack/Archiver/IndividualCompressedFiles.pm \
 	  lib/BitBack/GUI/Gtk.pm blib/lib/BitBack/GUI/Gtk.pm \
+	  lib/BitBack/GUI/Gtk/GUI.glade blib/lib/BitBack/GUI/Gtk/GUI.glade \
 	  lib/BitBack/ProfilesManager.pm blib/lib/BitBack/ProfilesManager.pm \
 	  lib/BitBack/Profile.pm blib/lib/BitBack/Profile.pm \
-	  lib/BitBack/Comparator/MDate.pm blib/lib/BitBack/Comparator/MDate.pm \
 	  lib/BitBack/GUI/CmdLine.pm blib/lib/BitBack/GUI/CmdLine.pm \
-	  lib/BitBack/Comparator.pm blib/lib/BitBack/Comparator.pm \
 	  main.pl $(INST_LIB)/main.pl \
-	  lib/BitBack/GUI.glade blib/lib/BitBack/GUI.glade \
 	  lib/BitBack.pm blib/lib/BitBack.pm 
 	$(NOECHO) $(TOUCH) pm_to_blib
 
