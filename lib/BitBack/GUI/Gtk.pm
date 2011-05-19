@@ -8,7 +8,7 @@ use Data::Dumper;
 use base qw(BitBack::GUI);
 Glib::Object->set_threadsafe(1);
 
-my @threads;
+my $selected_profile;
 
 use constant {
     FATAL => 'FATAL',
@@ -193,6 +193,13 @@ sub _profile_selected {
 
     my $status = defined($model);
 
+    if ( $model ) {
+        $selected_profile = $model->get( $iter, 0 );
+    }
+    else {
+        $selected_profile = undef;
+    }
+
     $run->set_sensitive($status);
     $restore->set_sensitive($status);
     $edit->set_sensitive($status);
@@ -208,16 +215,7 @@ sub _archive_profile {
 
     my $run     = $self->{builder}->get_object("run_button");
     my $restore = $self->{builder}->get_object("restore_button");
-    my $list    = $self->{builder}->get_object("profiles_list");
-    my ( $model, $iter ) = $list->get_selection->get_selected;
-    my $profile = $model->get( $iter, 0 );
-
-#    $run->set_sensitive(0);
-#   $restore->set_sensitive(0);
-#    $list->get_selection->unselect_all;
-#    $self->_update_view;
-    print STDERR "_archiving\n";
-    $self->{model}->archive($profile);
+    $self->{model}->archive($selected_profile);
 }
 
 sub _show_debug_window {
